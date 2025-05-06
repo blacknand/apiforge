@@ -1,0 +1,12 @@
+base_url: https://jsonplaceholder.typicode.com
+auth:
+  headers:
+    Authorization: Bearer dummy_token
+endpoints:
+  - method: GET
+    path: posts
+    expected_status: 200
+  - method: POST
+    path: posts
+    payload: { "title": "foo", "body": "bar", "userId": 1 }
+    expected_status: 201
