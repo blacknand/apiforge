@@ -10,8 +10,8 @@ class APIForge:
         self.session = requests.Session()
 
     @classmethod
-    def from_config(cls, config_path: str) -> 'APIForge':
-        config = ConfigParser.load_config(config_path)
+    def from_config(cls, config_path: str, env: str) -> 'APIForge':
+        config = ConfigParser.load_config(config_path, env)
         return cls(config["base_url"], config.get("auth"))
 
     def run_test(self, method: str, endpoint: str, expected_status: int = 200, **kwargs) -> Dict[str, Any]:
@@ -26,8 +26,8 @@ class APIForge:
         except requests.RequestException as e:
             raise RuntimeError(f"API request failed: {str(e)}")
         
-    def run_config_tests(self, config_path: str, reporter: Optional[TestReporter] = None) -> list[Dict[str, Any]]:
-        config = ConfigParser.load_config(config_path)
+    def run_config_tests(self, config_path: str, env: str, reporter: Optional[TestReporter] = None) -> list[Dict[str, Any]]:
+        config = ConfigParser.load_config(config_path, env)
         results = []
         for endpoint in config["endpoints"]:
             result = self.run_test(

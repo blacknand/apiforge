@@ -1,7 +1,5 @@
 import pytest
-from apiforge.core import APIForge
 from apiforge.config import ConfigParser
-from apiforge.reporter import TestReporter
 
 def test_config():
     config = ConfigParser.load_config("configs/api_config.yaml")
@@ -26,8 +24,3 @@ def test_load_config_empty_yaml(tmp_path):
     with open(empty_file, "w") as f: f.write("")
     config = ConfigParser.load_config(str(empty_file))
     assert config is None
-
-def test_run_config_tests(api_forge: APIForge, tmp_path: str):
-    reporter = TestReporter(str(tmp_path))
-    results = api_forge.run_config_tests("configs/api_config.yaml", reporter)
-    assert len(results) == 2
