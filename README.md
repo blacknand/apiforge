@@ -12,3 +12,9 @@ APIForge is a Python-based automated testing framework for RESTful APIs, designe
 ```bash
 pip install -r requirements.txt
 ```
+
+## Usage
+```bash
+forge = APIForge("https://jsonplaceholder.typicode.com")
+result = forge.run_test("GET", "posts", expected_status=200)
+```
