@@ -1,4 +1,7 @@
 base_url: https://jsonplaceholder.typicode.com
+environments:
+  prod: https://jsonplaceholder.typicode.com
+  staging: https://staging.example.com
 auth:
   headers:
     Authorization: Bearer dummy_token
