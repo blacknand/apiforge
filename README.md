@@ -18,3 +18,23 @@ pip install -r requirements.txt
 forge = APIForge("https://jsonplaceholder.typicode.com")
 result = forge.run_test("GET", "posts", expected_status=200)
 ```
+
+## Example API configuration
+Configure your RESTful API using a `yaml` configuration file inside of the `configs` directory:
+```bash
+base_url: https://jsonplaceholder.typicode.com
+environments:
+  prod: https://jsonplaceholder.typicode.com
+  staging: https://staging.example.com
+auth:
+  headers:
+    Authorization: Bearer dummy_token
+endpoints:
+  - method: GET
+    path: posts
+    expected_status: 200
+  - method: POST
+    path: posts
+    payload: { "title": "foo", "body": "bar", "userId": 1 }
+    expected_status: 201
+```
