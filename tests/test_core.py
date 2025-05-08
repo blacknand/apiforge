@@ -11,6 +11,9 @@ def test_get_posts(api_forge):
     assert len(data) > 0
     assert isinstance(data, list)
 
+def test_invalid_method(api_forge):
+    with pytest.raises(ValueError): api_forge.run_test("INVALID", "null")
+
 def test_post_creation(api_forge):
     payload = {"title": "foo", "body": "bar", "userId": 1}
     data = api_forge.run_test("POST", "posts", json=payload, expected_status=201)

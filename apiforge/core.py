@@ -12,12 +12,19 @@ class APIForge:
     @classmethod
     def from_config(cls, config_path: str) -> 'APIForge':
         config = ConfigParser.load_config(config_path, "prod")
+        print("-------------------- config -----------------------")
+        print(config)
+        print("-------------------- config -----------------------")
         return cls(config["base_url"], config.get("auth"))
 
     def run_test(self, method: str, endpoint: str, expected_status: int = 200, **kwargs) -> Dict[str, Any]:
         url = f"{self.base_url}/{endpoint.lstrip('/')}"
+        valid_methods = ["PUT", "DELETE", "GET", "POST"]
+        if not isinstance(method, str): raise TypeError("Expected method to be a str")
+        if str.upper(method) not in valid_methods: raise ValueError(f"Invalid HTTP method passed. Recieved {method} but accepted HTTP methods are {valid_methods}")
         try:
             reporter = kwargs.pop("reporter", None)
+            method = str.upper(method)
             response = self.session.request(method, url, **self.auth, **kwargs)
             if response.status_code != expected_status:
                 raise AssertionError(
@@ -42,5 +49,8 @@ class APIForge:
                 json=endpoint.get("payload"),
                 reporter=reporter
             )
+            print("------------------------- result -----------------------------")
+            print(result)
+            print("------------------------- result -----------------------------")
             results.append(result)
         return results
