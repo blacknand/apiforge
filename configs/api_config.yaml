@@ -9,7 +9,18 @@ endpoints:
   - method: GET
     path: posts
     expected_status: 200
+    expected_keys: ["id", "title", "body", "userId"]
   - method: POST
     path: posts
     payload: { "title": "foo", "body": "bar", "userId": 1 }
     expected_status: 201
+    expected_keys: ["id", "title", "body", "userId"]
+  - method: PUT
+    path: posts/1
+    expected_status: 200
+    payload: { "title": "foo", "body": "bar", "userId": 1 }
+    expected_keys: ["id", "title", "body", "userId"]
+  - method: DELETE
+    path: posts/1
+    expected_status: 200  # May need to be 204, jsonplaceholder returns 200 whereas other RESTful APIs return 200
+    expected_keys: []
