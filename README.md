@@ -7,6 +7,8 @@ APIForge is a Python-based automated testing framework for RESTful APIs, designe
 - Support for multiple HTTP methods and authentication
 - Detailed test reports and logging
 - CI/CD-ready with GitHub Actions
+- Easy configuration of APIs using `yaml` configuration files
+- Setup within seconds
 
 ## Installation
 ```bash
