@@ -2,7 +2,8 @@ import pytest
 from apiforge.core import APIForge
 from apiforge.reporter import Reporter
 
-EXPECTED_KEYS = ["title", "body", "userId"]
+EXPECTED_KEYS = ["id", "title", "body", "userId"]
+PAYLOAD = {"title": "foo", "body": "bar", "userId": 1}
 
 @pytest.fixture
 def api_forge():
@@ -15,7 +16,7 @@ def test_get_posts(api_forge):
     assert len(data) > 0
 
 def test_update_posts(api_forge):
-    data = api_forge.run_test("PUT", "posts/1", expected_status=200, expected_keys=EXPECTED_KEYS)
+    data = api_forge.run_test("PUT", "posts/1", json=PAYLOAD, expected_status=200, expected_keys=EXPECTED_KEYS)
     assert isinstance(data, dict)
     assert data.get("title") == "foo"
 
@@ -28,8 +29,7 @@ def test_invalid_method(api_forge):
     with pytest.raises(ValueError): api_forge.run_test("INVALID", "null")
 
 def test_post_creation(api_forge):
-    payload = {"title": "foo", "body": "bar", "userId": 1}
-    data = api_forge.run_test("POST", "posts", json=payload, expected_status=201, expected_keys=EXPECTED_KEYS)
+    data = api_forge.run_test("POST", "posts", json=PAYLOAD, expected_status=201, expected_keys=EXPECTED_KEYS)
     assert data["title"] == "foo"
 
 def test_run_config_tests(api_forge: APIForge, tmp_path):
