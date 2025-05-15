@@ -36,3 +36,12 @@ def test_run_config_tests(api_forge: APIForge, tmp_path):
     reporter = Reporter(str(tmp_path))
     results = api_forge.run_config_tests("configs/api_config.yaml", reporter)
     assert len(results) == 4
+
+def test_response_val_success(api_forge):
+    data = api_forge.run_test("GET", "posts/1", expected_status=200, expected_keys=["id", "title"])
+    assert isinstance(data, dict)
+    assert "id" in data and "title" in data
+
+def test_response_val_fail(api_forge):
+    with pytest.raises(AssertionError):
+        api_forge.run_test("GET", "posts/1", expected_status=200, expected_keys=["missing"])
