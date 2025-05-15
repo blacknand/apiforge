@@ -38,7 +38,7 @@ def test_run_config_tests(api_forge: APIForge, tmp_path):
     assert len(results) == 4
 
 def test_response_val_success(api_forge):
-    data = api_forge.run_test("GET", "posts/1", expected_status=200, expected_keys=["id", "title"])
+    data = api_forge.run_test("GET", "posts/1", expected_status=200, expected_keys=EXPECTED_KEYS)
     assert isinstance(data, dict)
     assert "id" in data and "title" in data
 
