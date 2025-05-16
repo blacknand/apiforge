@@ -1,6 +1,4 @@
-import pytest
 from apiforge.utils import validate_response
-from apiforge.core import APIForge
 from .test_core import EXPECTED_KEYS
 
 def test_valid_response():
@@ -29,3 +27,8 @@ def test_expected_keys():
     expected_keys_tuple = ("title", "body")
     assert (validate_response(data, expected_keys=expected_keys_list)) is True
     assert (validate_response(data, expected_keys=expected_keys_tuple)) is True
+
+def test_list_of_dicts():
+    data = [{"title": "foo", "body": "bar"}, {"title": "baz", "body": "qux"}] 
+    expected_keys = ["title", "body"]
+    assert (validate_response(data, expected_keys=expected_keys)) is True
