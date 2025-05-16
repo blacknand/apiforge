@@ -18,10 +18,13 @@ pip install -r requirements.txt
 ## Usage
 ```bash
 forge = APIForge("https://jsonplaceholder.typicode.com")
-result = forge.run_test("GET", "posts", expected_status=200)
+result = forge.run_test("GET", "posts", expected_status=200, params: dict)
 ```
 
 ## Example API configuration
+> NOTE: a starting point configuration file is provieded: `configs/api_config.yaml`. The best thing to do is to create a new `yaml` file for each configuration for each API.
+
+
 Configure your RESTful API using a `yaml` configuration file inside of the `configs` directory:
 ```bash
 base_url: https://jsonplaceholder.typicode.com

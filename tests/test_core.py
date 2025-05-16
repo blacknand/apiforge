@@ -45,3 +45,9 @@ def test_response_val_success(api_forge):
 def test_response_val_fail(api_forge):
     with pytest.raises(AssertionError):
         api_forge.run_test("GET", "posts/1", expected_status=200, expected_keys=["missing"])
+
+def test_query_params(api_forge):
+    params = {"userId": 1}
+    data = api_forge.run_test("GET", "posts", params=params, expected_status=200, expected_keys=EXPECTED_KEYS)
+    assert isinstance(data, dict) 
+    assert "id" in data and "title" in data
