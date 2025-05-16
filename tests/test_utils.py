@@ -1,3 +1,4 @@
+import pytest
 from apiforge.utils import validate_response
 from .test_core import EXPECTED_KEYS
 
@@ -32,3 +33,8 @@ def test_list_of_dicts():
     data = [{"title": "foo", "body": "bar"}, {"title": "baz", "body": "qux"}] 
     expected_keys = ["title", "body"]
     assert (validate_response(data, expected_keys=expected_keys)) is True
+
+@pytest.mark.xfail(reason="Expected behaviour, may change in future however")
+def test_empty_list():
+    data = []
+    assert (validate_response(data, expected_keys=[])) is False
