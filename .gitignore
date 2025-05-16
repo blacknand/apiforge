@@ -2,3 +2,5 @@ env
 tests/__pycache__
 apiforge/__pycache__
 apiforge/comamnds.md
+.DS_Store
+TODO.md

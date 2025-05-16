@@ -49,5 +49,8 @@ def test_response_val_fail(api_forge):
 def test_query_params(api_forge):
     params = {"userId": 1}
     data = api_forge.run_test("GET", "posts", params=params, expected_status=200, expected_keys=EXPECTED_KEYS)
-    assert isinstance(data, dict) 
-    assert "id" in data and "title" in data
+    assert isinstance(data, list)
+    assert len(data) > 0
+    for item in data:
+        assert isinstance(item, dict)
+        assert item["userId"] == 1
