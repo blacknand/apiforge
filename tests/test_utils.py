@@ -13,12 +13,12 @@ def test_missing_keys():
     expected_keys = ["title", "body"]
     assert (validate_response(data, expected_keys=expected_keys)) is False
 
-def testing_invalid_dict():
+def test_invalid_dict():
     data = {"title"}
     expected_keys = ["title"]
     assert (validate_response(data, expected_keys=expected_keys)) is False
 
-def testing_empty_keys():
+def test_empty_keys():
     data = {"title": "foot"}
     expected_keys = []
     assert (validate_response(data, expected_keys=expected_keys)) is True
