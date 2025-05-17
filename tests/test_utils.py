@@ -57,3 +57,8 @@ def test_list_w_non_dict_items():
     data=[{"title": "foo"}, 42]
     expected_keys=["title"]
     assert validate_response(data, expected_keys=expected_keys) is False
+
+def test_large_dataset():
+    data = [{"title": "foo", "body": "bar"}] * 100
+    expected_keys = ["title", "body"]
+    assert validate_response(data, expected_keys=expected_keys) is True
