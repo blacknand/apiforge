@@ -1,6 +1,6 @@
-from typing import Any
+from typing import Any, Union
 
-def validate_response(data: Any, expected_keys: list) -> bool:
+def validate_response(data: Any, expected_keys: Union[list, tuple]) -> bool:
     # Ensure API responses have expected structure
     if not expected_keys: return True       # No keys to check, so fine
     if not isinstance(data, (dict, list)): return False

@@ -1,5 +1,7 @@
 import pytest
 from apiforge.utils import validate_response
+from apiforge.reporter import Reporter
+from .test_core import EXPECTED_KEYS, PAYLOAD
 
 def test_valid_response():
     data = {"title": "foo", "body": "bar", "userId": 1}
@@ -33,9 +35,11 @@ def test_expected_keys():
     data = {"title": "foot", "body": "bar"}
     expected_keys_list = ["title", "body"]
     expected_keys_tuple = ("title", "body")
-    # Explicitly cast to tuple and list to ensure 100% correct
-    assert validate_response(data, expected_keys=list(expected_keys_list)) is True
-    assert validate_response(data, expected_keys=tuple(expected_keys_tuple)) is True
+    payload = {"id": 1, "title": "foo", "body": "bar", "userId": 1}
+
+    assert validate_response(data, expected_keys=expected_keys_list) is True
+    assert validate_response(data, expected_keys=expected_keys_tuple) is True
+    assert validate_response(payload, expected_keys=tuple(EXPECTED_KEYS)) is True
 
 def test_list_of_dicts():
     data = [{"title": "foo", "body": "bar"}, {"title": "baz", "body": "qux"}] 

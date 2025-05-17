@@ -1,5 +1,5 @@
 import requests
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Union
 from .config import ConfigParser
 from .reporter import Reporter
 from .utils import validate_response
@@ -15,7 +15,7 @@ class APIForge:
         config = ConfigParser.load_config(config_path, "prod")
         return cls(config["base_url"], config.get("auth"))
 
-    def run_test(self, method: str, endpoint: str, params: Dict[str, Any] = {}, expected_status: int = 200, expected_keys: Optional[List[str]] = None,  **kwargs) -> Dict[str, Any]:
+    def run_test(self, method: str, endpoint: str, params: Dict[str, Any] = {}, expected_status: int = 200, expected_keys: Optional[Union[List[str], tuple[str]]] = None,  **kwargs) -> Dict[str, Any]:
         url = f"{self.base_url}/{endpoint.lstrip('/')}"
         valid_methods = ["PUT", "DELETE", "GET", "POST"]
         if not isinstance(method, str): raise TypeError("Expected method to be a str")
@@ -32,7 +32,7 @@ class APIForge:
             if expected_keys is not None and not validate_response(result, expected_keys): raise AssertionError("Response validation failed: missing expected keys")
             if reporter:
                 test_config = {"method": method, "endpoint": endpoint, "params": params}
-                reporter.log_result(test_config, result, response.status_code == expected_status)
+                reporter.log_api_result(test_config, result, response.status_code == expected_status)
             return result
         except requests.RequestException as e:
             raise RuntimeError(f"API request failed: {str(e)}")
