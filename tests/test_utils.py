@@ -54,11 +54,19 @@ def test_empty_list():
     assert validate_response(data, expected_keys=[]) is False
 
 def test_list_w_non_dict_items():
-    data=[{"title": "foo"}, 42]
-    expected_keys=["title"]
+    data = [{"title": "foo"}, 42]
+    expected_keys = ["title"]
     assert validate_response(data, expected_keys=expected_keys) is False
 
 def test_large_dataset():
     data = [{"title": "foo", "body": "bar"}] * 100
     expected_keys = ["title", "body"]
     assert validate_response(data, expected_keys=expected_keys) is True
+
+def test_tuple_and_list_edgecases():
+    data = {"title": "foot", "body": "bar"}
+    expecetd_keys_tuple = ("title",)
+    expected_keys_list = ["title",]
+
+    assert validate_response(data, expected_keys=expecetd_keys_tuple) is True
+    assert validate_response(data, expected_keys=expected_keys_list) is True
