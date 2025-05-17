@@ -35,11 +35,10 @@ def test_expected_keys():
     data = {"title": "foot", "body": "bar"}
     expected_keys_list = ["title", "body"]
     expected_keys_tuple = ("title", "body")
-    payload = {"id": 1, "title": "foo", "body": "bar", "userId": 1}
 
     assert validate_response(data, expected_keys=expected_keys_list) is True
     assert validate_response(data, expected_keys=expected_keys_tuple) is True
-    assert validate_response(payload, expected_keys=tuple(EXPECTED_KEYS)) is True
+    assert validate_response(PAYLOAD, expected_keys=("title", "body", "userId")) is True
 
 def test_list_of_dicts():
     data = [{"title": "foo", "body": "bar"}, {"title": "baz", "body": "qux"}] 
