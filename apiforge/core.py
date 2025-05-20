@@ -1,5 +1,5 @@
 import requests
-from typing import Dict, Any, Optional, List, Union
+from typing import Dict, Any, Optional, List, Union, Tuple
 from .config import ConfigParser
 from .reporter import Reporter
 from .utils import validate_response
@@ -15,7 +15,9 @@ class APIForge:
         config = ConfigParser.load_config(config_path, "prod")
         return cls(config["base_url"], config.get("auth"))
 
-    def run_test(self, method: str, endpoint: str, params: Dict[str, Any] = {}, expected_status: int = 200, expected_keys: Optional[Union[List[str], tuple[str]]] = None,  **kwargs) -> Dict[str, Any]:
+    # Add retry logic to run_test for network failures (e.g., ConnectionError).
+    # Handle 404 errors for invalid endpoints.
+    def run_test(self, method: str, endpoint: str, params: Dict[str, Any] = {}, expected_status: int = 200, expected_keys: Optional[Union[List[str], Tuple[str]]] = None,  **kwargs) -> Dict[str, Any]:
         url = f"{self.base_url}/{endpoint.lstrip('/')}"
         valid_methods = ["PUT", "DELETE", "GET", "POST"]
         if not isinstance(method, str): raise TypeError("Expected method to be a str")
@@ -23,7 +25,7 @@ class APIForge:
         try:
             reporter = kwargs.pop("reporter", None)
             method = str.upper(method)
-            response = self.session.request(method, url, params, **self.auth, **kwargs)
+            response = self.session.request(method, url, params=params, **self.auth, **kwargs)
             if response.status_code != expected_status:
                 raise AssertionError(
                     f"Expected {expected_status}, got {response.status_code}: {response.text}"

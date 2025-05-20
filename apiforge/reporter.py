@@ -1,5 +1,6 @@
 import logging
 from typing import Dict, Any
+from colorama import Fore, Style
 
 class Reporter:
     def __init__(self, output_dir: str = "reports"):
@@ -20,3 +21,6 @@ class Reporter:
     def log_util_response(self, test: Dict[str, Any], result: Any, success: bool):
         status = "PASS" if success else "FAIL"
         self.logger.info(f"[TEST_UTIL] payload: {test}: {status} - Result: {result}")
+
+    def log_error(self, method: str, error: str):
+        self.logger.info(f"{Fore.RED}[ERROR] {Style.RESET_ALL} {method}: {error}")
