@@ -57,6 +57,10 @@ def test_query_params(api_forge):
 
 def test_response_val_types(api_forge):
     expected_keys = [("id", int, 1), ("title", str, "foo")]
+    expected_keys_l = (("id", int, 1), ("title", str, "foo"))
     data = api_forge.run_test("PUT", "posts/1", json=PAYLOAD, expected_status=200, expected_keys=expected_keys)
+    data_l = api_forge.run_test("PUT", "posts/1", json=PAYLOAD, expected_status=200, expected_keys=expected_keys_l)
     assert isinstance(data, dict)
+    assert isinstance(data_l, dict)
     assert data.get("title") == "foo"
+    assert data_l.get("title") == "foo"
