@@ -26,9 +26,3 @@ def test_load_config_empty_yaml(tmp_path):
     with open(empty_file, "w") as f: f.write("")
     config = ConfigParser.load_config(str(empty_file))
     assert config is None
-
-def test_load_config_empty_yaml(tmp_path):
-    empty_file = tmp_path / "invalid.yaml"
-    with open(empty_file, "w") as f: f.write("")
-    config = ConfigParser.load_config(str(empty_file))
-    assert config is None
