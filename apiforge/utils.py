@@ -1,13 +1,56 @@
-from typing import Any, Union
+from apiforge.reporter import Reporter
+from typing import Any, Union, Tuple, List
+from colorama import Fore, Back, Style
 
-def validate_response(data: Any, expected_keys: Union[list, tuple]) -> bool:
+expected_key = Union[Tuple[str, type], Tuple[str, type, Any]]
+
+def validate_response(data: Any, expected_keys: Union[List[expected_key], Tuple[expected_key], List[str], Tuple[str]]) -> bool:
     # Ensure API responses have expected structure
-    if not expected_keys: return True       # No keys to check, so fine
-    if not isinstance(data, (dict, list)): return False
-    if isinstance(data, dict): return all(key in data for key in expected_keys)
-    if not data: return False
+    # expected_key = (key, type) or (key, type, value) or just a string key
 
-    for item in data:
-        # Expected response: {"id": 1, "title": "foo"} or a list of dictionaries
-        if not isinstance(item, dict) or not all(key in item for key in expected_keys): return False
-    return True
+    if not expected_keys:  # No keys to check, so valid
+        return True
+
+    if not isinstance(data, (dict, list, tuple)):  # Invalid data type
+        return False
+
+    if not data:  # Empty data
+        return False
+
+    # Handle case where expected_keys are simple strings (original behavior)
+    if isinstance(expected_keys[0], str):
+        if isinstance(data, dict):
+            return all(key in data for key in expected_keys)
+        if isinstance(data, (list, tuple)):
+            for item in data:
+                if not isinstance(item, dict) or not all(key in item for key in expected_keys):
+                    return False
+            return True
+
+    # Handle case where expected_keys are tuples with (key, type) or (key, type, value)
+    if isinstance(data, dict):
+        for item in expected_keys:
+            if not isinstance(item, tuple) or len(item) not in (2, 3):
+                return False
+            key, expected_type = item[0], item[1]
+            if key not in data or not isinstance(data[key], expected_type):
+                return False
+            if len(item) == 3 and data[key] != item[2]:  # Check value if provided
+                return False
+        return True
+
+    if isinstance(data, (list, tuple)):
+        for item in data:
+            if not isinstance(item, dict):
+                return False
+            for ek in expected_keys:
+                if not isinstance(ek, tuple) or len(ek) not in (2, 3):
+                    return False
+                key, expected_type = ek[0], ek[1]
+                if key not in item or not isinstance(item[key], expected_type):
+                    return False
+                if len(ek) == 3 and item[key] != ek[2]:  # Check value if provided
+                    return False
+        return True
+
+    return False
