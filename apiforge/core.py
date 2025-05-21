@@ -1,4 +1,6 @@
 import requests
+import sys
+from tenacity import retry, stop_after_attempt, wait_fixed, stop_after_delay, retry_if_exception_type
 from typing import Dict, Any, Optional, List, Union, Tuple
 from .config import ConfigParser
 from .reporter import Reporter
@@ -14,9 +16,18 @@ class APIForge:
     def from_config(cls, config_path: str) -> 'APIForge':
         config = ConfigParser.load_config(config_path, "prod")
         return cls(config["base_url"], config.get("auth"))
+    
+    @retry(stop=stop_after_delay(15) | stop_after_attempt(3), wait=wait_fixed(2), retry=(retry_if_exception_type(requests.RequestException) | retry_if_exception_type(requests.ConnectionError) | retry_if_exception_type(requests.Timeout)))
+    def send_request(self, url: str, method: str, params: Dict[str, Any] = {}, expected_status: int = 200, **kwargs) -> Dict[str, Any]:
+        method = str.upper(method)
+        response = self.session.request(method, url, params=params, **self.auth, **kwargs)
+        if response.status_code != expected_status:
+            raise AssertionError(
+                f"Expected {expected_status}, got {response.status_code}: {response.text}"
+            )
+        result = response.json()
+        return result
 
-    # Add retry logic to run_test for network failures (e.g., ConnectionError).
-    # Handle 404 errors for invalid endpoints.
     def run_test(self, method: str, endpoint: str, params: Dict[str, Any] = {}, expected_status: int = 200, expected_keys: Optional[Union[List[str], Tuple[str]]] = None,  **kwargs) -> Dict[str, Any]:
         url = f"{self.base_url}/{endpoint.lstrip('/')}"
         valid_methods = ["PUT", "DELETE", "GET", "POST"]
@@ -24,18 +35,7 @@ class APIForge:
         if str.upper(method) not in valid_methods: raise ValueError(f"Invalid HTTP method passed. Recieved {method} but accepted HTTP methods are {valid_methods}")
         try:
             reporter = kwargs.pop("reporter", None)
-            method = str.upper(method)
-            response = self.session.request(method, url, params=params, **self.auth, **kwargs)
-            if response.status_code != expected_status:
-                raise AssertionError(
-                    f"Expected {expected_status}, got {response.status_code}: {response.text}"
-                )
-            result = response.json()
-            if expected_keys is not None and not validate_response(result, expected_keys): raise AssertionError("Response validation failed: missing expected keys")
-            if reporter:
-                test_config = {"method": method, "endpoint": endpoint, "params": params}
-                reporter.log_api_result(test_config, result, response.status_code == expected_status)
-            return result
+            # send_request
         except requests.RequestException as e:
             raise RuntimeError(f"API request failed: {str(e)}")
         
