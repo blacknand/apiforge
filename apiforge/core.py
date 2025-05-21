@@ -17,16 +17,23 @@ class APIForge:
         config = ConfigParser.load_config(config_path, "prod")
         return cls(config["base_url"], config.get("auth"))
     
-    @retry(stop=stop_after_delay(15) | stop_after_attempt(3), wait=wait_fixed(2), retry=(retry_if_exception_type(requests.RequestException) | retry_if_exception_type(requests.ConnectionError) | retry_if_exception_type(requests.Timeout)))
+    # TODO: introduce threads + thread safety somehow
+    """
+    - raise AssertionError if the response status is not correct
+    - raise any requests exception 
+    """
+    
+    @retry(
+    stop=stop_after_delay(15) | stop_after_attempt(3),
+    wait=wait_fixed(2),
+    retry=(retry_if_exception_type(requests.ConnectionError) | retry_if_exception_type(requests.Timeout))
+    )
     def send_request(self, url: str, method: str, params: Dict[str, Any] = {}, expected_status: int = 200, **kwargs) -> Dict[str, Any]:
         method = str.upper(method)
         response = self.session.request(method, url, params=params, **self.auth, **kwargs)
-        if response.status_code != expected_status:
-            raise AssertionError(
-                f"Expected {expected_status}, got {response.status_code}: {response.text}"
-            )
-        result = response.json()
-        return result
+        if response.status_code == 404: raise ValueError(f"Endpoint not found: {response.status_code}")
+        if response.status_code != expected_status: raise AssertionError(f"Expected {expected_status}, got {response.status_code}: {response.text}")
+        return response.json()
 
     def run_test(self, method: str, endpoint: str, params: Dict[str, Any] = {}, expected_status: int = 200, expected_keys: Optional[Union[List[str], Tuple[str]]] = None,  **kwargs) -> Dict[str, Any]:
         url = f"{self.base_url}/{endpoint.lstrip('/')}"
@@ -35,9 +42,19 @@ class APIForge:
         if str.upper(method) not in valid_methods: raise ValueError(f"Invalid HTTP method passed. Recieved {method} but accepted HTTP methods are {valid_methods}")
         try:
             reporter = kwargs.pop("reporter", None)
+            result = self.send_request(url=url, method=method, params=params, expected_status=expected_status, **self.auth, **kwargs)
+            if expected_keys is not None and not validate_response(result, expected_keys): raise AssertionError("Response validation failed: missing expected keys")
+            if reporter:
+                test_config = {"method": method, "endpoint": endpoint, "params": params}
+                reporter.log_api_result(test_config, result, True)
+            return result
             # send_request
         except requests.RequestException as e:
-            raise RuntimeError(f"API request failed: {str(e)}")
+            raise RuntimeError(f"API request failed after retries: {str(e)}")
+        except ValueError as e:
+            raise RuntimeError(f"API error: {str(e)}")
+        except AssertionError as e:
+            raise RuntimeError(f"API test failed: {str(e)}")
         
     def run_config_tests(self, config_path: str, env: str = "prod", reporter: Optional[Reporter] = None) -> list[Dict[str, Any]]:
         config = ConfigParser.load_config(config_path, env)
