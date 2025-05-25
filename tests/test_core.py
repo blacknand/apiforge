@@ -68,7 +68,6 @@ def test_response_val_types(api_forge):
     assert data_l.get("title") == "foo"
 
 def test_network_failures(api_forge, mocker):
-    session = mocker.MagicMock()
     mocked_request = mocker.patch.object(
         api_forge.session,
         "request",
@@ -89,7 +88,7 @@ def test_network_failures(api_forge, mocker):
         "GET",
         "https://jsonplaceholder.typicode.com/posts",
         params={"userId": 1},
-        headers={"Authroization": "Bearer token"}
+        headers={"Authorization": "Bearer dummy_token"}
     )
 
 def test_invalid_endpoint(api_forge, mocker):
@@ -106,9 +105,10 @@ def test_invalid_endpoint(api_forge, mocker):
     with pytest.raises(RuntimeError, match="API Error: Endpoint not found: 404"):
         api_forge.run_test(
             method="GET",
-            endpoint="non_existent",
+            endpoint="/non_existent",
             params={"userId": 1},
-            expected_status=200
+            expected_status=200,
+            expected_keys=EXPECTED_KEYS
         )
 
     assert api_forge.session.request.call_count == 1

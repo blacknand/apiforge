@@ -1,6 +1,6 @@
 import requests
 import time
-from tenacity import retry, stop_after_attempt, wait_fixed, stop_after_delay, retry_if_exception_type
+from tenacity import retry, stop_after_attempt, wait_fixed, stop_after_delay, retry_if_exception_type, RetryError
 from typing import Dict, Any, Optional, List, Union, Tuple
 from .config import ConfigParser
 from .reporter import Reporter
@@ -47,6 +47,10 @@ class APIForge:
             #     test_config = {"method": method, "endpoint": endpoint, "params": params}
             #     reporter.log_api_result(test_config, result, True)
             return result
+        except RetryError as e:
+            # Wrap tenacity.RetryError in RuntimeError
+            original_exception = e.last_attempt.exception() if e.last_attempt else e
+            raise RuntimeError(f"API request failed after retries: {str(original_exception)}") from e
         except requests.RequestException as e:
             raise RuntimeError(f"API request failed after retries: {str(e)}")
         except ValueError as e:
