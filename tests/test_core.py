@@ -43,7 +43,7 @@ def test_response_val_success(api_forge):
     assert "id" in data and "title" in data
 
 def test_response_val_fail(api_forge):
-    with pytest.raises(AssertionError):
+    with pytest.raises(RuntimeError):
         api_forge.run_test("GET", "posts/1", expected_status=200, expected_keys=["missing"])
 
 def test_query_params(api_forge):
