@@ -1,4 +1,6 @@
 import pytest
+import requests
+from unittest.mock import MagicMock
 from apiforge.core import APIForge
 from apiforge.reporter import Reporter
 
@@ -65,8 +67,54 @@ def test_response_val_types(api_forge):
     assert data.get("title") == "foo"
     assert data_l.get("title") == "foo"
 
-def test_network_failures(api_forge):
-    pass
+def test_network_failures(api_forge, mocker):
+    session = mocker.MagicMock()
+    mocked_request = mocker.patch.object(
+        api_forge.session,
+        "request",
+        side_effect=requests.ConnectionError("Network failure")
+    )
 
-def test_invalid_endpoint(api_forge):
-    pass
+    with pytest.raises(RuntimeError, match="API request failed after retries: Network failure"):
+        api_forge.run_test(
+            method="GET",
+            endpoint="/posts",
+            params={"userId": 1},
+            expected_keys=EXPECTED_KEYS,
+            expected_status=200
+        )
+
+    assert mocked_request.call_count == 3
+    assert mocked_request.call_args_list[0] == mocker.call(
+        "GET",
+        "https://jsonplaceholder.typicode.com/posts",
+        params={"userId": 1},
+        headers={"Authroization": "Bearer token"}
+    )
+
+def test_invalid_endpoint(api_forge, mocker):
+    mock_response = mocker.MagicMock()
+    mock_response.status_code = 404
+    mock_response.text = "Not Found"
+
+    mocker.patch.object(
+        api_forge.session,
+        "request",
+        return_value=mock_response
+    )
+
+    with pytest.raises(RuntimeError, match="API Error: Endpoint not found: 404"):
+        api_forge.run_test(
+            method="GET",
+            endpoint="non_existent",
+            params={"userId": 1},
+            expected_status=200
+        )
+
+    assert api_forge.session.request.call_count == 1
+    assert api_forge.session.request.call_args == mocker.call(
+        "GET",
+        "https://jsonplaceholder.typicode.com/non_existent",
+        params={"userId": 1},
+        headers={"Authorization": "Bearer token"}
+    )

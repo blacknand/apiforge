@@ -17,12 +17,7 @@ class APIForge:
         config = ConfigParser.load_config(config_path, "prod")
         return cls(config["base_url"], config.get("auth"))
     
-    # TODO: introduce threads + thread safety somehow
-    """
-    - raise AssertionError if the response status is not correct
-    - raise any requests exception 
-    """
-    
+    # Retry 3 times, with a 2 second delay in between and stop execution after 15 seconds with no response 
     @retry(
     stop=stop_after_delay(15) | stop_after_attempt(3),
     wait=wait_fixed(2),
