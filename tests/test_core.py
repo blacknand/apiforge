@@ -102,7 +102,7 @@ def test_invalid_endpoint(api_forge, mocker):
         return_value=mock_response
     )
 
-    with pytest.raises(RuntimeError, match="API Error: Endpoint not found: 404"):
+    with pytest.raises(RuntimeError, match="API error: Endpoint not found: 404"):
         api_forge.run_test(
             method="GET",
             endpoint="/non_existent",
@@ -116,5 +116,5 @@ def test_invalid_endpoint(api_forge, mocker):
         "GET",
         "https://jsonplaceholder.typicode.com/non_existent",
         params={"userId": 1},
-        headers={"Authorization": "Bearer token"}
+        headers={"Authorization": "Bearer dummy_token"}
     )
