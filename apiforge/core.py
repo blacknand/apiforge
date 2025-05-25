@@ -1,5 +1,5 @@
 import requests
-import sys
+import time
 from tenacity import retry, stop_after_attempt, wait_fixed, stop_after_delay, retry_if_exception_type
 from typing import Dict, Any, Optional, List, Union, Tuple
 from .config import ConfigParser
@@ -33,7 +33,11 @@ class APIForge:
         response = self.session.request(method, url, params=params, **self.auth, **kwargs)
         if response.status_code == 404: raise ValueError(f"Endpoint not found: {response.status_code}")
         if response.status_code != expected_status: raise AssertionError(f"Expected {expected_status}, got {response.status_code}: {response.text}")
-        return response.json()
+        try:
+            result = response.json()
+        except ValueError as e:
+            raise ValueError(f"Failed to parse JSON response: {e}")
+        return result
 
     def run_test(self, method: str, endpoint: str, params: Dict[str, Any] = {}, expected_status: int = 200, expected_keys: Optional[Union[List[str], Tuple[str]]] = None,  **kwargs) -> Dict[str, Any]:
         url = f"{self.base_url}/{endpoint.lstrip('/')}"
@@ -42,13 +46,12 @@ class APIForge:
         if str.upper(method) not in valid_methods: raise ValueError(f"Invalid HTTP method passed. Recieved {method} but accepted HTTP methods are {valid_methods}")
         try:
             reporter = kwargs.pop("reporter", None)
-            result = self.send_request(url=url, method=method, params=params, expected_status=expected_status, **self.auth, **kwargs)
+            result = self.send_request(url=url, method=method, params=params, expected_status=expected_status, **kwargs)
             if expected_keys is not None and not validate_response(result, expected_keys): raise AssertionError("Response validation failed: missing expected keys")
-            if reporter:
-                test_config = {"method": method, "endpoint": endpoint, "params": params}
-                reporter.log_api_result(test_config, result, True)
+            # if reporter:
+            #     test_config = {"method": method, "endpoint": endpoint, "params": params}
+            #     reporter.log_api_result(test_config, result, True)
             return result
-            # send_request
         except requests.RequestException as e:
             raise RuntimeError(f"API request failed after retries: {str(e)}")
         except ValueError as e:

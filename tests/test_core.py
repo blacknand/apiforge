@@ -64,3 +64,9 @@ def test_response_val_types(api_forge):
     assert isinstance(data_l, dict)
     assert data.get("title") == "foo"
     assert data_l.get("title") == "foo"
+
+def test_network_failures(api_forge):
+    pass
+
+def test_invalid_endpoint(api_forge):
+    pass
