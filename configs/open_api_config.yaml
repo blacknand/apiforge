@@ -1,0 +1,157 @@
+openapi: 3.1.0
+info:
+  title: JSONPlaceholder API
+  description: |
+    RESTful API configuration for testing with APIForge, based on JSONPlaceholder.
+  version: 1.0.0
+servers:
+  - url: https://jsonplaceholder.typicode.com
+    description: Production environment
+  - url: https://staging.example.com
+    description: Staging environment
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Post:
+      type: object
+      required: [id, title, body, userId]
+      properties:
+        id:
+          type: integer
+          example: 1
+        title:
+          type: string
+          example: "foo"
+        body:
+          type: string
+          example: "bar"
+        userId:
+          type: integer
+          example: 1
+    EmptyResponse:
+      type: object
+      additionalProperties: false
+paths:
+  /posts:
+    get:
+      summary: Retrieve posts filtered by userId
+      operationId: getPosts
+      parameters:
+        - name: userId
+          in: query
+          required: false
+          schema:
+            type: integer
+            example: 1
+      responses:
+        "200":
+          description: List of posts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Post'
+        "404":
+          description: Endpoint not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Not Found
+    post:
+      summary: Create a new post
+      operationId: createPost
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Post'
+      responses:
+        "201":
+          description: Post created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+        "404":
+          description: Endpoint not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Not Found
+  /posts/{id}:
+    put:
+      summary: Update a post by ID
+      operationId: updatePost
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Post'
+      responses:
+        "200":
+          description: Post updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+        "404":
+          description: Endpoint not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Not Found
+    delete:
+      summary: Delete a post by ID
+      operationId: deletePost
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 1
+      responses:
+        "200":  # JSONPlaceholder returns 200, but 204 is more RESTful
+          description: Post deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmptyResponse'
+        "404":
+          description: Endpoint not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Not Found
+security:
+  - bearerAuth: []
