@@ -7,6 +7,7 @@ def test_yaml_config():
     os.environ["API_BEARER_TOKEN"] = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
     config = ConfigParser.load_config("configs/open_api_config.yaml", "prod")
     payload = {"id": 1, "title": "foo", "body": "bar", "userId": 1}
+    put_payload = {"title": "foo", "body": "bar", "userId": 1}
     assert isinstance(config, dict)
     print(config)
     assert config["base_url"] == "https://jsonplaceholder.typicode.com"
@@ -31,7 +32,7 @@ def test_yaml_config():
     assert config["endpoints"][2] == {
         "method": "PUT",
         "path": "posts/{id}",
-        "payload": payload,
+        "payload": put_payload,
         "expected_status": 200,
         "expected_keys": EXPECTED_KEYS,
         "params": {"id": 1}
