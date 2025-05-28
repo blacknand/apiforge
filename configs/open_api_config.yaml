@@ -9,6 +9,7 @@ servers:
     description: Production environment
   - url: https://staging.example.com
     description: Staging environment
+# A section for reusable defenitions
 components:
   securitySchemes:
     bearerAuth:

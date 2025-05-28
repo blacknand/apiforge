@@ -35,7 +35,14 @@ class APIForge:
         return result
 
     def run_test(self, method: str, endpoint: str, params: Dict[str, Any] = {}, expected_status: int = 200, expected_keys: Optional[Union[List[str], Tuple[str]]] = None,  **kwargs) -> Dict[str, Any]:
-        url = f"{self.base_url}/{endpoint.lstrip('/')}"
+        params = params.copy()
+        formatted_endpoint = endpoint
+        for param_name in list(params.keys()):
+            placeholder = f"{{{param_name}}}"
+            if placeholder in formatted_endpoint:
+                formatted_endpoint = formatted_endpoint.replace(placeholder, str(params[param_name]))
+                del params[param_name]  # Remove path parameter from params to avoid sending as query param
+        url = f"{self.base_url}/{formatted_endpoint.lstrip('/')}"
         valid_methods = ["PUT", "DELETE", "GET", "POST"]
         if not isinstance(method, str): raise TypeError("Expected method to be a str")
         if str.upper(method) not in valid_methods: raise ValueError(f"Invalid HTTP method passed. Recieved {method} but accepted HTTP methods are {valid_methods}")
@@ -61,6 +68,8 @@ class APIForge:
     def run_config_tests(self, config_path: str, env: str = "prod", reporter: Optional[Reporter] = None) -> list[Dict[str, Any]]:
         config = ConfigParser.load_config(config_path, env)
         results = []
+        for key, value in config.items():
+            print(key)
         for endpoint in config["endpoints"]:
             result = self.run_test(
                 method=endpoint["method"],
@@ -73,3 +82,7 @@ class APIForge:
             )
             results.append(result)
         return results
+    
+    def run_generated_tests(self):
+        # TODO: run generated tests w TestGenerator
+        pass

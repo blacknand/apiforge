@@ -9,7 +9,7 @@ PAYLOAD = {"title": "foo", "body": "bar", "userId": 1}
 
 @pytest.fixture
 def api_forge():
-    return APIForge.from_config("configs/api_config.yaml")
+    return APIForge.from_config("configs/open_api_config.yaml")
 
 def test_get_posts(api_forge):
     data = api_forge.run_test("GET", "posts", expected_status=200, expected_keys=EXPECTED_KEYS)
@@ -36,7 +36,7 @@ def test_post_creation(api_forge):
 
 def test_run_config_tests(api_forge: APIForge, tmp_path):
     reporter = Reporter(str(tmp_path))
-    results = api_forge.run_config_tests("configs/api_config.yaml", reporter)
+    results = api_forge.run_config_tests("configs/open_api_config.yaml", reporter=reporter)
     assert len(results) == 4
 
 def test_response_val_success(api_forge):
@@ -88,7 +88,7 @@ def test_network_failures(api_forge, mocker):
         "GET",
         "https://jsonplaceholder.typicode.com/posts",
         params={"userId": 1},
-        headers={"Authorization": "Bearer dummy_token"}
+        headers={"Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."}
     )
 
 def test_invalid_endpoint(api_forge, mocker):
@@ -116,5 +116,5 @@ def test_invalid_endpoint(api_forge, mocker):
         "GET",
         "https://jsonplaceholder.typicode.com/non_existent",
         params={"userId": 1},
-        headers={"Authorization": "Bearer dummy_token"}
+        headers={"Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."}
     )
