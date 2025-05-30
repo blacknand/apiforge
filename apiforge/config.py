@@ -1,6 +1,5 @@
 import yaml
 import os
-import re
 from prance import ResolvingParser
 from typing import Dict, Any, Optional, Union
 
@@ -13,14 +12,14 @@ class ConfigParser:
             raise RuntimeError(f"Failed to load config: {str(e)}")
         
     @staticmethod
-    def load_config(spec: Union[str, Dict[str, Any]], env: str = "prod") -> Optional[Dict[str, Any]]:
+    def load_config(spec: Union[str, Dict[str, Any]], env: str = "prod", for_generator: bool = False) -> Optional[Dict[str, Any]]:
         # Try parsing as OAS first
         try: 
             if isinstance(spec, dict): parser = ResolvingParser(specification_dict=spec)
             elif isinstance(spec, str): parser = ResolvingParser(spec)
             parser.parse()
             spec = parser.specification
-            if not spec.get("openapi") or re.match(r"^3\.0\.\d+$", spec.get("openapi")):
+            if not spec.get("openapi") or not spec.get("openapi").startswith("3."):
                 raise RuntimeError("Invalid OpenAPI spec")
         except Exception as e:
             # Fallback to custom YAML
@@ -31,16 +30,19 @@ class ConfigParser:
                 if not isinstance(config, dict):
                     raise RuntimeError("Configuration file must parse to a dictionary")
                 if "environments" in config:
-                    config["base_url"] = config["environments"].get(env, config["base_url"])
+                    config["base_url"] = config["environments"].get(env, config.get("base_url", ""))
                 return config
-            else: return {}
+            else: raise RuntimeError(f"Invalid OpenAPI spec: {str(e)}")
 
         # Select server based on env
-        server = next(
-            (s for s in spec.get("servers", []) if s["description"].lower().startswith(env)),
-            spec.get("servers", [{}])[0]
-        )
-        base_url = server.get("url", "")
+        if not for_generator:
+            server = next(
+                (s for s in spec.get("servers", []) if s["description"].lower().startswith(env)),
+                spec.get("servers", [{}])[0]
+            )
+            base_url = server.get("url", "")
+        else:
+            base_url = ""
 
         # Extract auth
         auth = {"headers": {"Authorization": "Bearer dummy_token"}}  # Default
@@ -54,7 +56,7 @@ class ConfigParser:
         endpoints = []
         for path, operations in spec.get("paths", {}).items():
             for method, operation in operations.items():
-                if method.lower() not in ["get", "post", "put", "delete"]:  # Exclude patch
+                if method.lower() not in ["get", "post", "put", "delete", "patch"]:  # Exclude patch
                     continue
 
                 endpoint = {

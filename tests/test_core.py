@@ -3,6 +3,7 @@ import requests
 from unittest.mock import MagicMock
 from apiforge.core import APIForge
 from apiforge.reporter import Reporter
+from apiforge.generator import TestGenerator
 
 EXPECTED_KEYS = ["id", "title", "body", "userId"]
 PAYLOAD = {"title": "foo", "body": "bar", "userId": 1}
@@ -21,6 +22,11 @@ def test_update_posts(api_forge):
     data = api_forge.run_test("PUT", "posts/1", json=PAYLOAD, expected_status=200, expected_keys=EXPECTED_KEYS)
     assert isinstance(data, dict)
     assert data.get("title") == "foo"
+
+def test_patch(api_forge):
+    data = api_forge.run_test("PATCH", "posts/1", json={"title": "foo10"}, expected_status=200, expected_keys=EXPECTED_KEYS)
+    assert isinstance(data, dict)
+    assert data.get("title") == "foo10"
 
 def test_post_deletion(api_forge):
     data = api_forge.run_test("DELETE", "posts/1", expected_status=200, expected_keys=[])
@@ -118,3 +124,38 @@ def test_invalid_endpoint(api_forge, mocker):
         params={"userId": 1},
         headers={"Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."}
     )
+
+def test_generated_tests(api_forge):
+    results = api_forge.run_generated_tests("configs/open_api_config.yaml")
+    assert isinstance(results, list)
+    assert len(results) >= 1  
+    for result in results:
+        assert isinstance(result, dict)
+        assert "error" not in result or isinstance(result["error"], str)
+
+def test_osa_dict():
+    mock_spec = {
+        "openapi": "3.0.3",
+        "servers": [{"url": "https://api.example.com"}],
+        "paths": {
+            "/test": {
+                "get": {
+                    "responses": {
+                        "200": {
+                            "content": {
+                                "application/json": {
+                                    "schema": {"type": "object", "required": ["id"]}
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    api_forge = APIForge.from_config(mock_spec)
+    results = api_forge.run_generated_tests(mock_spec)
+    assert isinstance(results, list)
+    assert len(results) == 1
+    assert isinstance(results[0], dict)
+    assert "error" not in results[0] or isinstance(results[0]["error"], str)

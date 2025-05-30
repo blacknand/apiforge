@@ -4,6 +4,7 @@ from typing import Dict, Any, Optional, List, Union, Tuple
 from .config import ConfigParser
 from .reporter import Reporter
 from .utils import validate_response
+from .generator import TestGenerator
 
 class APIForge:
     def __init__(self, base_url: str, auth: Optional[Dict[str, Any]] = None):
@@ -12,9 +13,9 @@ class APIForge:
         self.session = requests.Session()
 
     @classmethod
-    def from_config(cls, config_path: str) -> 'APIForge':
-        config = ConfigParser.load_config(config_path, "prod")
-        return cls(config["base_url"], config.get("auth"))
+    def from_config(cls, config: Union[str, Dict[str, Any]], env: str = "Prod") -> 'APIForge':
+        config_data = ConfigParser.load_config(config, env)
+        return cls(config_data.get("base_url", ""), config_data.get("auth"))
     
     # Retry 3 times, with a 2 second delay in between and stop execution after 15 seconds with no response 
     @retry(
@@ -42,7 +43,7 @@ class APIForge:
                 formatted_endpoint = formatted_endpoint.replace(placeholder, str(params[param_name]))
                 del params[param_name]  # Remove path parameter from params to avoid sending as query param
         url = f"{self.base_url}/{formatted_endpoint.lstrip('/')}"
-        valid_methods = ["PUT", "DELETE", "GET", "POST"]
+        valid_methods = ["PUT", "DELETE", "GET", "POST", "PATCH"]
         if not isinstance(method, str): raise TypeError("Expected method to be a str")
         if str.upper(method) not in valid_methods: raise ValueError(f"Invalid HTTP method passed. Recieved {method} but accepted HTTP methods are {valid_methods}")
         try:
@@ -64,24 +65,60 @@ class APIForge:
         except AssertionError as e:
             raise RuntimeError(f"API test failed: {str(e)}")
         
-    def run_config_tests(self, config_path: str, env: str = "prod", reporter: Optional[Reporter] = None) -> list[Dict[str, Any]]:
-        config = ConfigParser.load_config(config_path, env)
+    def run_config_tests(self, config: Union[str, Dict[str, Any]], env: str = "prod", reporter: Optional[Reporter] = None) -> list[Dict[str, Any]]:
+        config_data = ConfigParser.load_config(config, env)
         results = []
-        for key, value in config.items():
-            print(key)
-        for endpoint in config["endpoints"]:
-            result = self.run_test(
-                method=endpoint["method"],
-                endpoint=endpoint["path"],
-                params=endpoint.get("params", {}),
-                expected_status=endpoint["expected_status"],
-                json=endpoint.get("payload"),
-                reporter=reporter,
-                expected_keys=endpoint.get("expected_keys")
-            )
-            results.append(result)
+        for endpoint in config_data["endpoints"]:
+            try:
+                result = self.run_test(
+                    method=endpoint["method"],
+                    endpoint=endpoint["path"],
+                    params=endpoint.get("params", {}),
+                    expected_status=endpoint["expected_status"],
+                    json=endpoint.get("payload"),
+                    reporter=reporter,
+                    expected_keys=endpoint.get("expected_keys")
+                )
+                results.append(result)
+            except RuntimeError as e:
+                if reporter:
+                    test_config = {
+                        "method": endpoint["method"],
+                        "endpoint": endpoint["path"],
+                        "params": endpoint.get("params", {})
+                    }
+                    reporter.log_api_result(test_config, None, False, str(e))
+                results.append({"error": str(e)})
         return results
     
-    def run_generated_tests(self):
-        # TODO: run generated tests w TestGenerator
-        pass
+    def run_generated_tests(self, spec: Union[str, Dict[str, Any]], reporter: Optional[Reporter] = None) -> List[Dict[str, Any]]:
+        generator = TestGenerator()
+        try:
+            endpoints = generator.generate_tests(spec)
+        except RuntimeError as e:
+            raise RuntimeError(f"Failed to generate tests: {str(e)}")
+        
+        results = []
+        for endpoint in endpoints:
+            try:
+                result = self.run_test(
+                    method=endpoint["method"],
+                    endpoint=endpoint["path"],
+                    params=endpoint.get("params", {}),
+                    expected_status=endpoint["expected_status"],
+                    expected_keys=endpoint.get("expected_keys"),
+                    json=endpoint.get("payload"),
+                    reporter=reporter
+                )
+                results.append(result)
+            except RuntimeError as e:
+                if reporter:
+                    test_config = {
+                        "method": endpoint["method"],
+                        "endpoint": endpoint["path"],
+                        "params": endpoint.get("params", {})
+                    }
+                    reporter.log_api_result(test_config, None, False, str(e))
+                results.append({"error": str(e)})
+        
+        return results
