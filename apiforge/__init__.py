@@ -1,5 +1,6 @@
 from .core import APIForge
-from .generator import TestGenerator
-from .reporter import Reporter
+from .generator import *
+from .reporter import *
+from .config import *
 
 __version__ = "0.1.0"

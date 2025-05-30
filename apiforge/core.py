@@ -1,5 +1,4 @@
 import requests
-import time
 from tenacity import retry, stop_after_attempt, wait_fixed, stop_after_delay, retry_if_exception_type, RetryError
 from typing import Dict, Any, Optional, List, Union, Tuple
 from .config import ConfigParser
