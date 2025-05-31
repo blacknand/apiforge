@@ -1,9 +1,7 @@
 import pytest
 import requests
-from unittest.mock import MagicMock
 from apiforge.core import APIForge
 from apiforge.reporter import Reporter
-from apiforge.generator import TestGenerator
 
 EXPECTED_KEYS = ["id", "title", "body", "userId"]
 PAYLOAD = {"title": "foo", "body": "bar", "userId": 1}
@@ -130,12 +128,17 @@ def test_generated_tests(api_forge):
     assert isinstance(results, list)
     assert len(results) >= 1  
     for result in results:
-        assert isinstance(result, dict)
-        assert "error" not in result or isinstance(result["error"], str)
+        assert isinstance(result, dict) or isinstance(result, list)
+        if isinstance(result, list):
+            for item in result:
+                assert isinstance(item, dict)
+                for key in EXPECTED_KEYS:
+                    assert key in item
 
 def test_osa_dict():
     mock_spec = {
         "openapi": "3.0.3",
+        "info": [{"title": "test_osa_dict API"}, {"description": "In memory test dict"}],
         "servers": [{"url": "https://api.example.com"}],
         "paths": {
             "/test": {
@@ -157,5 +160,8 @@ def test_osa_dict():
     results = api_forge.run_generated_tests(mock_spec)
     assert isinstance(results, list)
     assert len(results) == 1
-    assert isinstance(results[0], dict)
-    assert "error" not in results[0] or isinstance(results[0]["error"], str)
+    assert isinstance(results[0], list)
+    for item in results[0]:
+        assert isinstance(item, dict)
+        for key in EXPECTED_KEYS:
+            assert key in item

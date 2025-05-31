@@ -15,7 +15,9 @@ class ConfigParser:
     def load_config(spec: Union[str, Dict[str, Any]], env: str = "prod", for_generator: bool = False) -> Optional[Dict[str, Any]]:
         # Try parsing as OAS first
         try: 
-            if isinstance(spec, dict): parser = ResolvingParser(specification_dict=spec)
+            if isinstance(spec, dict): 
+                spec_string = yaml.safe_dump(spec)
+                parser = ResolvingParser(spec_string=spec_string)
             elif isinstance(spec, str): parser = ResolvingParser(spec)
             parser.parse()
             spec = parser.specification
