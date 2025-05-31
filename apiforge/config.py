@@ -39,7 +39,7 @@ class ConfigParser:
         # Select server based on env
         if not for_generator:
             server = next(
-                (s for s in spec.get("servers", []) if s["description"].lower().startswith(env)),
+                (s for s in spec.get("servers", []) if s.get("description", "").startswith(env)),
                 spec.get("servers", [{}])[0]
             )
             base_url = server.get("url", "")
