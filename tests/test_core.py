@@ -13,7 +13,7 @@ def api_forge():
 def test_get_posts(api_forge):
     data = api_forge.run_test("GET", "posts", expected_status=200, expected_keys=EXPECTED_KEYS)
     assert isinstance(data, list)
-    for i in data: assert isinstance(i, dict)   # Returns a list of dictionaries
+    for i in data: assert isinstance(i, dict)  
     assert len(data) > 0
 
 def test_update_posts(api_forge):
@@ -73,7 +73,7 @@ def test_response_val_types(api_forge):
 
 def test_network_failures(api_forge, mocker):
     mocked_request = mocker.patch.object(
-        api_forge.session,
+        api_forge._session,
         "request",
         side_effect=requests.ConnectionError("Network failure")
     )
@@ -101,7 +101,7 @@ def test_invalid_endpoint(api_forge, mocker):
     mock_response.text = "Not Found"
 
     mocker.patch.object(
-        api_forge.session,
+        api_forge._session,
         "request",
         return_value=mock_response
     )
@@ -115,8 +115,8 @@ def test_invalid_endpoint(api_forge, mocker):
             expected_keys=EXPECTED_KEYS
         )
 
-    assert api_forge.session.request.call_count == 1
-    assert api_forge.session.request.call_args == mocker.call(
+    assert api_forge._session.request.call_count == 1
+    assert api_forge._session.request.call_args == mocker.call(
         "GET",
         "https://jsonplaceholder.typicode.com/non_existent",
         params={"userId": 1},

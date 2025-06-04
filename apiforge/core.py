@@ -1,4 +1,8 @@
 import requests
+import time
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
+from threading import Lock
 from tenacity import retry, stop_after_attempt, wait_fixed, stop_after_delay, retry_if_exception_type, RetryError
 from typing import Dict, Any, Optional, List, Union, Tuple
 from .config import ConfigParser
@@ -10,7 +14,7 @@ class APIForge:
     def __init__(self, base_url: str, auth: Optional[Dict[str, Any]] = None):
         self.base_url = base_url.rstrip('/')
         self.auth = auth or {}
-        self.session = requests.Session()
+        self._session = requests.Session()
 
     @classmethod
     def from_config(cls, config: Union[str, Dict[str, Any]], env: str = "Prod") -> 'APIForge':
@@ -25,7 +29,7 @@ class APIForge:
     )
     def send_request(self, url: str, method: str, params: Dict[str, Any] = {}, expected_status: int = 200, **kwargs) -> Dict[str, Any]:
         method = str.upper(method)
-        response = self.session.request(method, url, params=params, **self.auth, **kwargs)
+        response = self._session.request(method, url, params=params, **self.auth, **kwargs)
         if response.status_code == 404: raise ValueError(f"Endpoint not found: {response.status_code}")
         if response.status_code != expected_status: raise AssertionError(f"Expected {expected_status}, got {response.status_code}: {response.text}")
         try:
@@ -46,23 +50,27 @@ class APIForge:
         valid_methods = ["PUT", "DELETE", "GET", "POST", "PATCH"]
         if not isinstance(method, str): raise TypeError("Expected method to be a str")
         if str.upper(method) not in valid_methods: raise ValueError(f"Invalid HTTP method passed. Recieved {method} but accepted HTTP methods are {valid_methods}")
+        reporter = kwargs.pop("reporter", None)
         try:
-            reporter = kwargs.pop("reporter", None)
             result = self.send_request(url=url, method=method, params=params, expected_status=expected_status, **kwargs)
             if expected_keys is not None and not validate_response(result, expected_keys): raise AssertionError("Response validation failed: missing expected keys")
-            # if reporter:
-            #     test_config = {"method": method, "endpoint": endpoint, "params": params}
-            #     reporter.log_api_result(test_config, result, True)
+            if reporter:
+                test_config = {"method": method, "endpoint": endpoint, "params": params}
+                reporter.log_api_result(test=test_config, result=result, success=True)
             return result
         except RetryError as e:
             # Wrap tenacity.RetryError in RuntimeError
             original_exception = e.last_attempt.exception() if e.last_attempt else e
-            raise RuntimeError(f"API request failed after retries: {str(original_exception)}") from e
+            if reporter: reporter.log_api_result(test={"method": method, "endpoint": formatted_endpoint, "params": params}, result=original_exception, success=False)
+            raise RuntimeError(f"API request failed after retries: {str(original_exception)}") from e 
         except requests.RequestException as e:
+            if reporter: reporter.log_api_result(test={"method": method, "endpoint": formatted_endpoint, "params": params}, result=e, success=False)
             raise RuntimeError(f"API request failed after retries: {str(e)}")
         except ValueError as e:
+            if reporter: reporter.log_api_result(test={"method": method, "endpoint": formatted_endpoint, "params": params}, result=e, success=False)
             raise RuntimeError(f"API error: {str(e)}")
         except AssertionError as e:
+            if reporter: reporter.log_api_result(test={"method": method, "endpoint": formatted_endpoint, "params": params}, result=e, success=False)
             raise RuntimeError(f"API test failed: {str(e)}")
         
     def run_config_tests(self, config: Union[str, Dict[str, Any]], env: str = "prod", reporter: Optional[Reporter] = None) -> list[Dict[str, Any]]:
@@ -93,13 +101,26 @@ class APIForge:
     
     def run_generated_tests(self, spec: Union[str, Dict[str, Any]], reporter: Optional[Reporter] = None) -> List[Dict[str, Any]]:
         generator = TestGenerator()
+        if reporter: reporter.log_generic_output(output=f"Starting generated tests with spec: {spec}", method="APIForge::run_generated_tests")
         try:
             endpoints = generator.generate_tests(spec)
+            if reporter: reporter.log_generic_output(output=f"Generated {len(endpoints)} test endpoints", method="APIForge::run_generated_tests")
         except RuntimeError as e:
+            if reporter: reporter.log_error(method="APIForge::run_generated_tests", error=e)
             raise RuntimeError(f"Failed to generate tests: {str(e)}")
         
         results = []
+        success_count = 0
+        start_time = time.time()
+
         for endpoint in endpoints:
+            test_config = {
+                "method": endpoint["method"],
+                "endpoint": endpoint["path"],
+                "params": endpoint.get("params", {}),
+                "expected_status": endpoint["expected_status"],
+                "expected_keys": endpoint.get("expected_keys", [])
+            }
             try:
                 result = self.run_test(
                     method=endpoint["method"],
@@ -110,15 +131,27 @@ class APIForge:
                     json=endpoint.get("payload"),
                     reporter=reporter
                 )
+                if reporter: reporter.log_api_result(test=test_config, result=result, success=True)
                 results.append(result)
+                success_count += 1
             except RuntimeError as e:
-                if reporter:
-                    test_config = {
-                        "method": endpoint["method"],
-                        "endpoint": endpoint["path"],
-                        "params": endpoint.get("params", {})
-                    }
-                    reporter.log_api_result(test_config, None, False, str(e))
+                if reporter: reporter.log_api_result(test=test_config, result=str(e), success=False)
                 results.append({"error": str(e)})
+
+        if reporter:
+            elapsed_time = time.time() - start_time
+            reporter.log_generic_output(
+                        output=
+                        f"Completed {len(endpoints)} tests: {success_count} passed, "
+                        f"{len(endpoints) - success_count} failed in {elapsed_time:.2f} seconds",
+                        method="APIForge::run_generated_tests"
+                    )
         
         return results
+    
+    # @contextmanager
+    # def get_session(self):
+    #     with self._lock:
+    #         session = self._session
+    #         try: yield session
+    #         finally: session.close()

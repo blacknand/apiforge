@@ -9,16 +9,15 @@ class Reporter:
         self.output_dir = output_dir
         self.results = []
 
-    def log_generic_output(self, output: Any):
-        self.logger.info("______________________________________________________ generic output _______________________________________________________")
-        self.logger.info(output)
-        self.logger.info("______________________________________________________ generic output _______________________________________________________")
+    def log_generic_output(self, output: Any, method: str = "null_method"):
+        if method: self.logger.info(f"[INFO] {method} -> {output}")
+        else: self.logger.info(f"[INFO] {output}")
 
     def log_api_result(self, test: Dict[str, Any], result: Any, success: bool):
         status = "PASS" if success else "FAIL"
         color = "\033[32m" if success else "\033[31m"  
         reset = "\033[0m"  
-        self.logger.info(f"Test {test['method']} {test['endpoint']}: {status} - Result: {color}{result}{reset}")
+        self.logger.info(f"Test {test['method']} {test['endpoint']} [{test['params']}]: {status} - Result: {color}{result}{reset}")
 
     def log_util_response(self, test: Dict[str, Any], result: Any, success: bool):
         status = "PASS" if success else "FAIL"
