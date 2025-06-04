@@ -16,11 +16,15 @@ class Reporter:
 
     def log_api_result(self, test: Dict[str, Any], result: Any, success: bool):
         status = "PASS" if success else "FAIL"
-        self.logger.info(f"Test {test['method']} {test['endpoint']}: {status} - Result: {result}")
+        color = "\033[32m" if success else "\033[31m"  
+        reset = "\033[0m"  
+        self.logger.info(f"Test {test['method']} {test['endpoint']}: {status} - Result: {color}{result}{reset}")
 
     def log_util_response(self, test: Dict[str, Any], result: Any, success: bool):
         status = "PASS" if success else "FAIL"
-        self.logger.info(f"[TEST_UTIL] payload: {test}: {status} - Result: {result}")
+        color = "\033[32m" if success else "\033[31m"  
+        reset = "\033[0m"  
+        self.logger.info(f"[TEST_UTIL] payload: {test}: {status} - Result: {color}{result}{reset}")
 
     def log_error(self, method: str, error: str):
         self.logger.info(f"{Fore.RED}[ERROR] {Style.RESET_ALL} {method}: {error}")
