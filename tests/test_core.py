@@ -5,6 +5,7 @@ from apiforge.reporter import Reporter
 
 EXPECTED_KEYS = ["id", "title", "body", "userId"]
 PAYLOAD = {"title": "foo", "body": "bar", "userId": 1}
+REPORTER = Reporter()
 
 @pytest.fixture
 def api_forge():
@@ -124,7 +125,7 @@ def test_invalid_endpoint(api_forge, mocker):
     )
 
 def test_generated_tests(api_forge):
-    results = api_forge.run_generated_tests("configs/open_api_config.yaml")
+    results = api_forge.run_generated_tests(spec="configs/open_api_config.yaml", reporter=REPORTER)
     assert isinstance(results, list)
     assert len(results) >= 1  
     for result in results:
@@ -174,7 +175,7 @@ def test_osa_dict():
         }
     }
     api_forge = APIForge.from_config(mock_spec)
-    results = api_forge.run_generated_tests(mock_spec)
+    results = api_forge.run_generated_tests(spec=mock_spec, reporter=REPORTER)
     assert isinstance(results, list)
     assert len(results) >= 1
     for result in results:

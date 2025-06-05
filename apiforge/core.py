@@ -1,8 +1,6 @@
 import requests
 import time
 from concurrent.futures import ThreadPoolExecutor
-from contextlib import contextmanager
-from threading import Lock
 from tenacity import retry, stop_after_attempt, wait_fixed, stop_after_delay, retry_if_exception_type, RetryError
 from typing import Dict, Any, Optional, List, Union, Tuple
 from .config import ConfigParser
@@ -11,10 +9,11 @@ from .utils import validate_response
 from .generator import TestGenerator
 
 class APIForge:
-    def __init__(self, base_url: str, auth: Optional[Dict[str, Any]] = None):
+    def __init__(self, base_url: str, auth: Optional[Dict[str, Any]] = None, max_workers: int = 10):
         self.base_url = base_url.rstrip('/')
         self.auth = auth or {}
         self._session = requests.Session()
+        self.max_workers = max_workers
 
     @classmethod
     def from_config(cls, config: Union[str, Dict[str, Any]], env: str = "Prod") -> 'APIForge':
@@ -98,6 +97,28 @@ class APIForge:
                     reporter.log_api_result(test_config, None, False, str(e))
                 results.append({"error": str(e)})
         return results
+
+    def _run_test_task(self, endpoint, reporter):
+        test_config = {
+            "method": endpoint["method"],
+            "endpoint": endpoint["path"],
+            "params": endpoint.get("params", {}),
+            "expected_status": endpoint["expected_status"],
+            "expected_keys": endpoint.get("expected_keys", [])
+        }
+        try:
+            result = self.run_test(
+                method=endpoint["method"],
+                endpoint=endpoint["path"],
+                params=endpoint.get("params", {}),
+                expected_status=endpoint["expected_status"],
+                expected_keys=endpoint.get("expected_keys"),
+                json=endpoint.get("payload"),
+                reporter=reporter
+            )
+            return result, True
+        except RuntimeError as e:
+            return {"error": str(e)}, False
     
     def run_generated_tests(self, spec: Union[str, Dict[str, Any]], reporter: Optional[Reporter] = None) -> List[Dict[str, Any]]:
         generator = TestGenerator()
@@ -113,30 +134,12 @@ class APIForge:
         success_count = 0
         start_time = time.time()
 
-        for endpoint in endpoints:
-            test_config = {
-                "method": endpoint["method"],
-                "endpoint": endpoint["path"],
-                "params": endpoint.get("params", {}),
-                "expected_status": endpoint["expected_status"],
-                "expected_keys": endpoint.get("expected_keys", [])
-            }
-            try:
-                result = self.run_test(
-                    method=endpoint["method"],
-                    endpoint=endpoint["path"],
-                    params=endpoint.get("params", {}),
-                    expected_status=endpoint["expected_status"],
-                    expected_keys=endpoint.get("expected_keys"),
-                    json=endpoint.get("payload"),
-                    reporter=reporter
-                )
-                if reporter: reporter.log_api_result(test=test_config, result=result, success=True)
-                results.append(result)
-                success_count += 1
-            except RuntimeError as e:
-                if reporter: reporter.log_api_result(test=test_config, result=str(e), success=False)
-                results.append({"error": str(e)})
+        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+                futures = [executor.submit(self._run_test_task, endpoint, reporter) for endpoint in endpoints]
+                for future in futures:
+                    result, success = future.result()
+                    results.append(result)
+                    if success: success_count += 1
 
         if reporter:
             elapsed_time = time.time() - start_time

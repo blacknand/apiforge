@@ -1,4 +1,5 @@
 import logging
+import threading
 from typing import Dict, Any
 from colorama import Fore, Style
 
@@ -17,7 +18,8 @@ class Reporter:
         status = "PASS" if success else "FAIL"
         color = "\033[32m" if success else "\033[31m"  
         reset = "\033[0m"  
-        self.logger.info(f"Test {test['method']} {test['endpoint']} [{test['params']}]: {status} - Result: {color}{result}{reset}")
+        thread_name = threading.current_thread().name
+        self.logger.info(f"({thread_name}) Test {test['method']} {test['endpoint']} [{test['params']}]: {status} - Result: {color}{result}{reset}")
 
     def log_util_response(self, test: Dict[str, Any], result: Any, success: bool):
         status = "PASS" if success else "FAIL"
